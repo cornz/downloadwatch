@@ -12,6 +12,14 @@ Verified on 2026-09-08, Apple Silicon, macOS 26.6.2, Swift 6.3.3.
 - Apple accepted notarization submission `af1d077c-1732-46e9-bc12-7229fd5f90dc`.
 - The extracted executable matches the signed executable byte for byte and passes
   strict code-signature verification.
+- The ZIP downloaded from the public GitHub release passed the same archive
+  checks and matched the published SHA-256.
+- Homebrew style, strict audit, upgrade from 0.1.0, and formula tests passed.
+- The installed binary is byte-identical to the signed release and satisfies
+  Apple's notarization requirement.
+- The Homebrew background service copied a real HTTPS download in a temporary
+  folder as a native clipboard file URL. Service start and stop passed. The
+  service was left stopped after testing.
 - Signing identity and Keychain profile are required environment variables.
   The release script contains no personal defaults or credentials.
 

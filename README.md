@@ -26,6 +26,11 @@ Apple Silicon. The binary targets macOS 13 or later. Runtime verification was
 performed on macOS 26.6.2 with Apple Silicon. macOS 13 and Intel Macs have not been
 runtime-tested. No Intel binary is published.
 
+The background service passed a real download test in a temporary folder. Its
+first access to `~/Downloads` still needs verification on this Mac after unlocking
+it and resolving any macOS permission prompt. See the
+[verification report](docs/verification-0.1.0.md).
+
 ## Use
 
 ```sh

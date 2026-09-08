@@ -1,8 +1,8 @@
 class Downloadwatch < Formula
   desc "Copy completed downloads to the macOS clipboard as native file references"
   homepage "https://github.com/cornz/downloadwatch"
-  url "https://github.com/cornz/downloadwatch/releases/download/v0.1.0/downloadwatch-0.1.0-macos-arm64.zip"
-  sha256 "96de8b335c4f3186ffcd1101f262bacaca6e974d01818cf1b5085e5497c72dcb"
+  url "https://github.com/cornz/downloadwatch/releases/download/v0.2.0/downloadwatch-0.2.0-macos-arm64.zip"
+  sha256 "03457e3382bbd58d54c8df7f49f90c5ae6b6d12d6373daf80b41507665edc9fa"
   license "MIT"
 
   depends_on arch: :arm64

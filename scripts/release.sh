@@ -5,8 +5,8 @@ cd "$(dirname "$0")/.."
 version="${1:?Usage: scripts/release.sh VERSION}"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 2
 [[ "$(uname -m)" == arm64 ]] || { echo 'Release validation requires Apple Silicon.' >&2; exit 1; }
-identity="${SIGNING_IDENTITY:-Developer ID Application: Cornelius Tom Christian Putzler (3Z55A24KS4)}"
-profile="${NOTARY_PROFILE:-TrimWM-notary}"
+identity="${SIGNING_IDENTITY:?Set SIGNING_IDENTITY to your Developer ID Application identity}"
+profile="${NOTARY_PROFILE:?Set NOTARY_PROFILE to your notarytool Keychain profile}"
 output="$PWD/dist/$version"
 [[ ! -e "$output" ]] || { echo "Output already exists: $output" >&2; exit 1; }
 swift test
@@ -16,11 +16,34 @@ binary_dir="$(swift build -c release --arch arm64 --show-bin-path)"
 mkdir -p "$output/stage"
 cp "$binary_dir/downloadwatch" "$output/stage/downloadwatch"
 cp LICENSE "$output/stage/LICENSE"
+# Remove debug maps and local symbols before signing. Never strip after signing.
+xcrun strip -S -x "$output/stage/downloadwatch"
+# Swift can add a build-machine toolchain rpath. Keep only portable runtime paths.
+python3 - "$output/stage/downloadwatch" <<'PYRPATH'
+import re, subprocess, sys
+binary = sys.argv[1]
+commands = subprocess.check_output(["otool", "-l", binary], text=True)
+for block in commands.split("Load command "):
+    if "cmd LC_RPATH\n" not in block:
+        continue
+    path = re.search(r"\n\s*path (.+) \(offset ", block).group(1)
+    if path.startswith(("/Applications/", "/Users/", "/home/", "/private/var/", "/Volumes/", "/tmp/")):
+        subprocess.run(["xcrun", "install_name_tool", "-delete_rpath", path, binary], check=True)
+PYRPATH
 codesign --force --options runtime --timestamp --identifier com.cornz.downloadwatch \
   --sign "$identity" "$output/stage/downloadwatch"
 codesign --verify --strict --verbose=2 "$output/stage/downloadwatch"
 archive="$output/downloadwatch-$version-macos-arm64.zip"
-ditto -c -k "$output/stage" "$archive"
+# Explicit file list: no AppleDouble files, resource forks, or extended attributes.
+python3 - "$output/stage" "$archive" <<'PYZIP'
+from pathlib import Path
+import sys, zipfile
+stage = Path(sys.argv[1])
+with zipfile.ZipFile(sys.argv[2], "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    for name in ("downloadwatch", "LICENSE"):
+        archive.write(stage / name, arcname=name)
+PYZIP
+python3 scripts/audit-release.py "$archive"
 xcrun notarytool submit "$archive" --keychain-profile "$profile" --wait \
   --output-format json > "$output/notarization.json"
 python3 - "$output/notarization.json" <<'PY'

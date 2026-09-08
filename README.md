@@ -21,15 +21,23 @@ brew services stop downloadwatch
 brew uninstall downloadwatch
 ```
 
-Release 0.1.0 provides a Developer-ID-signed, Apple-notarized ARM64 binary for
+Release 0.2.0 provides a Developer-ID-signed, Apple-notarized ARM64 binary for
 Apple Silicon. The binary targets macOS 13 or later. Runtime verification was
 performed on macOS 26.6.2 with Apple Silicon. macOS 13 and Intel Macs have not been
 runtime-tested. No Intel binary is published.
 
-The background service passed a real download test in a temporary folder. Its
-first access to `~/Downloads` still needs verification on this Mac after unlocking
-it and resolving any macOS permission prompt. See the
-[verification report](docs/verification-0.1.0.md).
+Background operation has been tested with a temporary folder. Background access
+to `~/Downloads` is not yet verified. See the
+[verification report](docs/verification-0.2.0.md) for test coverage.
+
+To update an existing installation:
+
+```sh
+brew update
+brew upgrade cornz/tap/downloadwatch
+```
+
+If the service was running, restart it with `brew services restart downloadwatch`.
 
 ## Use
 
@@ -41,8 +49,8 @@ downloadwatch --version
 ```
 
 Stop a foreground process with Ctrl-C. Use only one watcher for each folder.
-macOS may ask for access to Downloads. If access is denied, check System Settings
-> Privacy & Security > Files & Folders. Permissions for a terminal process and a
+macOS may ask for access to Downloads. If access is denied, check **System Settings
+→ Privacy & Security → Files & Folders**. Permissions for a terminal process and a
 background service can differ. After fixing access, run
 `brew services restart downloadwatch`.
 
@@ -71,15 +79,15 @@ Logs contain file names and are not rotated automatically.
   Moving or deleting the file can prevent pasting it later.
 - Several completions are copied in sequence. The last one remains on the
   clipboard. Ties use modification time, then file path.
-- Directory events and batched FSEvents detect changes and scan the folder. While files are pending, timer ticks inspect
-  only those candidates every 250 ms. There is no periodic scan while idle.
+- Directory events and batched FSEvents detect changes and scan the folder.
+  While files are pending, timer ticks inspect only those candidates every 250 ms. There is no periodic scan while idle.
   Frequent directory events can still cause repeated full scans in busy folders.
 - If the watched folder disappears or becomes unreadable, the tool exits.
 
 ## Build and test
 
-Building requires Xcode Command Line Tools with Swift 5.9 or later. The release
-was built with Swift 6.3.3. The installed binary does not require a Swift install.
+Building requires Xcode Command Line Tools. The package requires Swift 5.9 or
+later; the verified release build used Swift 6.3.3. The installed binary does not require a Swift install.
 
 ```sh
 swift build -c release
@@ -107,19 +115,25 @@ is not the signed release. The uninstaller keeps source files, downloads, and lo
 
 ## Release process
 
-Releases are built on the signing Mac. Signing keys and notarization credentials
-stay in its Keychain; they are not uploaded to GitHub Actions.
+Release builds require an Apple Silicon Mac, Xcode tools, Python 3, a Developer ID
+Application certificate, and a notarytool Keychain profile. Signing keys and
+notarization credentials stay in the Keychain. GitHub Actions only builds and tests.
 
 1. Update the version in `Sources/downloadwatch/main.swift` and this README.
-2. Run `scripts/release.sh 0.1.0`. Set `SIGNING_IDENTITY` and `NOTARY_PROFILE` to
-   override the local defaults. The script tests, builds ARM64, signs with hardened
-   runtime and a secure timestamp, notarizes the ZIP, and verifies the extracted
-   binary without changing it.
-3. Commit the source, tag it as `v0.1.0`, and publish the ZIP and `SHA256SUMS` from
-   `dist/0.1.0` in the matching GitHub release.
-4. Update `packaging/downloadwatch.rb` and the formula in
-   [cornz/homebrew-tap](https://github.com/cornz/homebrew-tap) with the version and
-   archive SHA-256. Test installation, signature, and service before publishing.
+2. Set `SIGNING_IDENTITY` to your Developer ID Application identity and
+   `NOTARY_PROFILE` to your notarytool Keychain profile, then run
+   `scripts/release.sh 0.2.0`. No personal signing defaults are stored in the repo.
+   The script tests and builds ARM64. It removes debug maps, local symbols, and
+   toolchain paths from the build Mac before signing with hardened runtime and a
+   secure timestamp. It creates a ZIP containing only
+   the executable and license, checks for local build paths and extra metadata,
+   notarizes the ZIP, and verifies the extracted binary without changing it.
+3. Update `packaging/downloadwatch.rb` with the version and archive SHA-256.
+   Commit the source and tag it as `v0.2.0`. Publish only the ZIP and `SHA256SUMS`
+   from `dist/0.2.0` in the matching GitHub release.
+4. Copy the formula to a local checkout of
+   [cornz/homebrew-tap](https://github.com/cornz/homebrew-tap). Test installation,
+   signature, and service, then publish the updated tap.
 
 The formula copies the signed binary without stripping or patching it. Its
 `skip_clean` declaration protects the binary during Homebrew cleanup. Compare the

@@ -7,7 +7,7 @@ func log(_ message: String) {
 
 let args = Array(CommandLine.arguments.dropFirst())
 if args == ["--version"] {
-    print("downloadwatch 0.1.0")
+    print("downloadwatch 0.2.0")
     exit(0)
 }
 if args.contains("--help") || args.contains("-h") {

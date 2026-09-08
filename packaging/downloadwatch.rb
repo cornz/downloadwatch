@@ -6,7 +6,6 @@ class Downloadwatch < Formula
   license "MIT"
 
   depends_on arch: :arm64
-  depends_on :macos
   depends_on macos: :ventura
 
   # Preserve the Developer ID signature. Do not strip or patch this executable.
